@@ -40,22 +40,8 @@ export default async function PagarPage({ params }: Props) {
     buyerEmail = data?.email ?? null
   }
 
-  // Guard: vendedor não pode pagar a própria transação
-  if (userId && userId === tx.seller_id) {
-    return (
-      <main className="min-h-screen bg-[#F2F4F7] flex items-center justify-center px-4">
-        <div className="w-full max-w-sm bg-white rounded-[16px] border border-[#E4E8F0] p-8 text-center">
-          <div className="w-12 h-12 rounded-full bg-[#FFF8E6] flex items-center justify-center mx-auto mb-4">
-            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-            </svg>
-          </div>
-          <p className="text-[15px] font-medium text-[#1A202C]">Você criou esta transação</p>
-          <p className="text-[13px] text-[#8890A4] mt-2">Não é possível pagar uma transação que você mesmo gerou.</p>
-        </div>
-      </main>
-    )
-  }
+  // Banner de aviso quando o vendedor visita o próprio link (não bloqueia)
+  const isSeller = !!(userId && userId === tx.seller_id)
 
   const payContent = tx.status === 'pending' && !tx.pix_copy_paste
     ? (
@@ -100,6 +86,14 @@ export default async function PagarPage({ params }: Props) {
               </svg>
               Minhas transações
             </Link>
+            {isSeller && (
+              <div className="flex items-start gap-2.5 px-4 py-3 rounded-[10px] text-[13px]" style={{ background: '#FFF8E6', borderLeft: '3px solid #D97706', color: '#92400E' }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+                  <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                Você é o vendedor desta transação. Compartilhe este link com o comprador.
+              </div>
+            )}
             <div className="bg-white rounded-[16px] border border-[#E4E8F0] p-6">
               {payContent}
             </div>

@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 import { AcoesTransacao } from '@/components/AcoesTransacao'
 import { StatusTimeline } from '@/components/StatusTimeline'
 import { CopiarLinkCard } from '@/components/CopiarLinkCard'
+import { ClaimTransacaoButton } from '@/components/ClaimTransacaoButton'
 import type { EscrowEvent, TransactionStatus, TransactionWithParties } from '@/types/database'
 
 interface Props {
@@ -167,7 +168,16 @@ export default async function TransacaoPage({ params }: Props) {
               role={role}
               complaintDeadline={tx.complaint_deadline}
               trackingDeadline={tx.tracking_deadline}
+              carrier={tx.carrier}
+              trackingCode={tx.tracking_code}
             />
+          </div>
+        )}
+
+        {/* Vincular à conta — para usuário logado que pagou como guest */}
+        {role === 'observer' && user && ['paid', 'tracked', 'delivered', 'complaint_period', 'disputed', 'released'].includes(tx.status) && (
+          <div className="bg-white rounded-[16px] border border-[#E4E8F0] p-5">
+            <ClaimTransacaoButton transactionId={tx.id} />
           </div>
         )}
 

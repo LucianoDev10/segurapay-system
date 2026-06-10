@@ -45,18 +45,27 @@ export async function adminMarkPaid(transactionId: string) {
   const supabase = createAdminClient()
   const paidAt = new Date()
   const trackingDeadline = new Date(paidAt.getTime() + 96 * 60 * 60 * 1000)
-  const { data, error } = await supabase
+
+  let result = await supabase
     .from('transactions')
-    .update({
-      status: 'paid',
-      paid_at: paidAt.toISOString(),
-      tracking_deadline: trackingDeadline.toISOString(),
-    })
+    .update({ status: 'paid', paid_at: paidAt.toISOString(), tracking_deadline: trackingDeadline.toISOString() })
     .eq('id', transactionId)
     .eq('status', 'pending')
     .select('*')
     .single()
 
+  // Fallback: migração da coluna tracking_deadline pode não ter sido aplicada
+  if (result.error) {
+    result = await supabase
+      .from('transactions')
+      .update({ status: 'paid', paid_at: paidAt.toISOString() })
+      .eq('id', transactionId)
+      .eq('status', 'pending')
+      .select('*')
+      .single()
+  }
+
+  const { data, error } = result
   if (error || !data) throw new Error('Não foi possível confirmar pagamento')
 
   await supabase.from('escrow_events').insert({

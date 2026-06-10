@@ -43,6 +43,7 @@ function fmtDate(iso: string | null): string {
 }
 
 const ACTIVE_STATUSES: TransactionStatus[] = ['paid', 'tracked', 'delivered', 'complaint_period', 'disputed']
+const COMPLETED_STATUSES: TransactionStatus[] = ['released', 'resolved']
 
 const STATUS_RANK: Record<string, number> = {
   pending: 0, paid: 1, tracked: 2, delivered: 3,
@@ -383,6 +384,8 @@ const STATUS_BADGE: Partial<Record<TransactionStatus, { bg: string; color: strin
   delivered:        { bg: '#FFF8E6', color: '#D97706', label: 'Entregue' },
   complaint_period: { bg: '#FFF8E6', color: '#D97706', label: 'Análise' },
   disputed:         { bg: '#FEF2F2', color: '#EF4444', label: 'Disputa' },
+  released:         { bg: '#ECFDF5', color: '#047857', label: 'Liberado' },
+  resolved:         { bg: '#ECFDF5', color: '#047857', label: 'Resolvido' },
 }
 
 function CompactCard({ tx, userId }: { tx: TxRow; userId: string }) {
@@ -465,6 +468,7 @@ export default async function VaultPage() {
 
   const all = (transactions ?? []) as unknown as TxRow[]
   const active = all.filter(tx => ACTIVE_STATUSES.includes(tx.status))
+  const completed = all.filter(tx => COMPLETED_STATUSES.includes(tx.status))
   const featured = active[0] ?? null
   const others = active.slice(1)
 
@@ -523,6 +527,20 @@ export default async function VaultPage() {
                 >
                   Ver histórico
                 </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Concluídas */}
+          {completed.length > 0 && (
+            <div>
+              <p className="text-[11px] font-medium text-[#8890A4] uppercase tracking-wide mb-3">
+                concluídas ({completed.length})
+              </p>
+              <div className="flex flex-col gap-2">
+                {completed.map(tx => (
+                  <CompactCard key={tx.id} tx={tx} userId={user.id} />
+                ))}
               </div>
             </div>
           )}

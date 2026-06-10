@@ -33,11 +33,27 @@ export function PixInstrucoes({
     try {
       const res = await fetch(`/api/transactions/${transactionId}/pix-status`)
       const json = await res.json()
-      if (json.status === 'paid') setPago(true)
+      if (json.status === 'paid') {
+        // Se não tem redirect definido (guest), tenta associar à conta logada
+        if (!redirectOnPaid) {
+          try {
+            const claim = await fetch(`/api/transactions/${transactionId}/claim-buyer`, { method: 'POST' })
+            if (claim.ok) {
+              const claimJson = await claim.json()
+              if (claimJson.redirectTo) {
+                setPago(true)
+                setTimeout(() => router.push(claimJson.redirectTo), 1500)
+                return
+              }
+            }
+          } catch { /* não logado — comportamento normal de guest */ }
+        }
+        setPago(true)
+      }
     } catch {
       // silently ignore — next poll will retry
     }
-  }, [transactionId])
+  }, [transactionId, redirectOnPaid, router])
 
   useEffect(() => {
     if (pago) {

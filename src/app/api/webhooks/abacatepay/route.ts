@@ -47,17 +47,22 @@ export async function POST(request: NextRequest) {
 
   const paidAt = new Date()
   const trackingDeadline = new Date(paidAt.getTime() + 96 * 60 * 60 * 1000)
-  const { error: updateError } = await admin
+
+  let updateResult = await admin
     .from('transactions')
-    .update({
-      status: 'paid',
-      paid_at: paidAt.toISOString(),
-      tracking_deadline: trackingDeadline.toISOString(),
-    })
+    .update({ status: 'paid', paid_at: paidAt.toISOString(), tracking_deadline: trackingDeadline.toISOString() })
     .eq('id', tx.id)
 
-  if (updateError) {
-    console.error('[webhook] erro ao atualizar transação:', updateError.message)
+  // Fallback: migração da coluna tracking_deadline pode não ter sido aplicada
+  if (updateResult.error) {
+    updateResult = await admin
+      .from('transactions')
+      .update({ status: 'paid', paid_at: paidAt.toISOString() })
+      .eq('id', tx.id)
+  }
+
+  if (updateResult.error) {
+    console.error('[webhook] erro ao atualizar transação:', updateResult.error.message)
     return NextResponse.json({ error: 'Erro interno' }, { status: 500 })
   }
 

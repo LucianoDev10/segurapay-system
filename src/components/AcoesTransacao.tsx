@@ -10,6 +10,8 @@ interface AcoesTransacaoProps {
   role: 'buyer' | 'seller'
   complaintDeadline: string | null
   trackingDeadline: string | null
+  carrier?: string | null
+  trackingCode?: string | null
 }
 
 const inputClass = "w-full rounded-[10px] border border-[#E4E8F0] bg-white px-3.5 py-2.5 text-[14px] text-[#1A202C] placeholder:text-[#8890A4] outline-none focus:border-[#1B4DFF] focus:ring-1 focus:ring-[#1B4DFF]/20 transition-all duration-150"
@@ -48,13 +50,21 @@ function ConfirmacaoModal({
           </p>
         </div>
 
-        {/* Aviso */}
+        {/* Aviso — prazo de disputa */}
+        <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[12px]" style={{ background: '#EFF6FF', borderLeft: '3px solid #1D4ED8', color: '#1D4ED8' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>Após confirmar, você tem <strong>24 horas</strong> para abrir uma disputa caso haja qualquer problema com o produto.</span>
+        </div>
+
+        {/* Aviso — liberação */}
         <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[12px]" style={{ background: '#FFF8E6', borderLeft: '3px solid #D97706', color: '#92400E' }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
-          <span>Após confirmar, o pagamento é <strong>liberado ao vendedor</strong>. Essa ação não pode ser desfeita.</span>
+          <span>Se não abrir disputa nesse prazo, o pagamento é <strong>liberado automaticamente ao vendedor</strong>.</span>
         </div>
 
         {/* Botões */}
@@ -160,7 +170,15 @@ function DisputaModal({
   )
 }
 
-export function AcoesTransacao({ transactionId, status, role, complaintDeadline, trackingDeadline }: AcoesTransacaoProps) {
+const CARRIER_LABEL: Record<string, string> = {
+  correios: 'Correios',
+  jadlog: 'Jadlog',
+  total_express: 'Total Express',
+  azul_cargo: 'Azul Cargo',
+  outro: 'Outro',
+}
+
+export function AcoesTransacao({ transactionId, status, role, complaintDeadline, trackingDeadline, carrier, trackingCode }: AcoesTransacaoProps) {
   const router = useRouter()
   const [loading, setLoading] = useState<string | null>(null)
   const [erro, setErro] = useState<string | null>(null)
@@ -190,8 +208,45 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
     ? new Date(complaintDeadline).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
     : null
 
-  // "Produto recebido" visível para qualquer papel quando em transporte
   if (status === 'tracked') {
+    const trackingCard = trackingCode && (
+      <div className="rounded-[10px] border border-[#E4E8F0] overflow-hidden">
+        <div className="flex items-center gap-2 px-3.5 py-2.5 bg-[#F2F4F7] border-b border-[#E4E8F0]">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#4A5568" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>
+          </svg>
+          <span className="text-[11px] font-medium text-[#4A5568] uppercase tracking-wide">rastreio</span>
+        </div>
+        <div className="px-3.5 py-3 flex flex-col gap-2">
+          {carrier && (
+            <div className="flex justify-between items-center">
+              <span className="text-[12px] text-[#8890A4]">Transportadora</span>
+              <span className="text-[13px] font-medium text-[#1A202C]">{CARRIER_LABEL[carrier] ?? carrier}</span>
+            </div>
+          )}
+          <div className="flex justify-between items-center gap-3">
+            <span className="text-[12px] text-[#8890A4] flex-shrink-0">Código</span>
+            <span className="text-[13px] font-medium text-[#1A202C] font-mono tracking-wide break-all text-right">{trackingCode}</span>
+          </div>
+        </div>
+      </div>
+    )
+
+    if (role === 'seller') {
+      return (
+        <div className="flex flex-col gap-3">
+          {trackingCard}
+          <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#EFF6FF', borderLeft: '3px solid #1D4ED8', color: '#1D4ED8' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>Produto enviado. Aguardando o comprador confirmar o recebimento para liberar o pagamento.</span>
+          </div>
+        </div>
+      )
+    }
+
+    // role === 'buyer'
     return (
       <>
         {showConfirm && (
@@ -202,11 +257,12 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
           />
         )}
         <div className="flex flex-col gap-3">
+          {trackingCard}
           <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#EFF6FF', borderLeft: '3px solid #1D4ED8', color: '#1D4ED8' }}>
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
-              <rect x="1" y="3" width="15" height="13" /><polygon points="16 8 20 8 23 11 23 16 16 16 16 8" /><circle cx="5.5" cy="18.5" r="2.5" /><circle cx="18.5" cy="18.5" r="2.5" />
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>O produto está a caminho. Clique assim que receber.</span>
+            <span>O produto está a caminho. Clique assim que receber para liberar o pagamento.</span>
           </div>
           <button
             onClick={() => setShowConfirm(true)}
@@ -224,6 +280,29 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
   if (role === 'seller') {
     if (status === 'paid') {
       return <TrackingForm transactionId={transactionId} trackingDeadline={trackingDeadline} onAction={action} loading={loading} erro={erro} />
+    }
+    if (status === 'delivered') {
+      return (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#ECFDF5', borderLeft: '3px solid #10B981', color: '#047857' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+            <span>O comprador confirmou o recebimento do produto.</span>
+          </div>
+          <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#EFF6FF', borderLeft: '3px solid #1D4ED8', color: '#1D4ED8' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            </svg>
+            <span>
+              O comprador tem <strong>24 horas</strong> para contestar a entrega.
+              {deadlineStr
+                ? <> Se não houver disputa, o pagamento será liberado em <strong>{deadlineStr}</strong>.</>
+                : <> Se não houver disputa, o pagamento será liberado automaticamente.</>}
+            </span>
+          </div>
+        </div>
+      )
     }
     if (status === 'released') {
       return (
@@ -266,9 +345,9 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
         <>
           {showConfirm && (
             <ConfirmacaoModal
-              onConfirm={() => { setShowConfirm(false); action('confirm-delivery') }}
+              onConfirm={() => { setShowConfirm(false); action('release') }}
               onCancel={() => setShowConfirm(false)}
-              loading={loading === 'confirm-delivery'}
+              loading={loading === 'release'}
             />
           )}
           {showDisputa && (

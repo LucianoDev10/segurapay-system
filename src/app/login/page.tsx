@@ -280,6 +280,15 @@ function LoginForm() {
                 <div>
                   <label className={labelClass}>senha</label>
                   <input name="password" type="password" required autoComplete="current-password" placeholder="••••••••" className={inputClass} />
+                  <div className="flex justify-end mt-1.5">
+                    <button
+                      type="button"
+                      onClick={() => switchTab('recuperar')}
+                      className="text-[12px] text-[#1B4DFF] hover:text-[#1338CC] transition-colors"
+                    >
+                      Esqueci minha senha
+                    </button>
+                  </div>
                 </div>
 
                 {erro && <Alert type="error" message={erro} />}
