@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { emailPagamentoConfirmado } from '@/lib/email'
 
 interface PixQrCodePaidData {
   payment: { amount: number; fee: number; method: string }
@@ -31,7 +32,7 @@ export async function POST(request: NextRequest) {
   // Busca a transação pelo payment_id
   const { data: tx, error } = await admin
     .from('transactions')
-    .select('id, status, seller_id')
+    .select('id, status, seller_id, product_name, amount_cents, seller:users!transactions_seller_id_fkey(email,name), buyer:users!transactions_buyer_id_fkey(email,name)')
     .eq('payment_id', pixId)
     .single()
 
@@ -80,5 +81,21 @@ export async function POST(request: NextRequest) {
   })
 
   console.log('[webhook] pagamento confirmado:', tx.id)
+
+  // Notifica comprador e vendedor
+  const seller = tx.seller as unknown as { email: string; name: string } | null
+  const buyer = tx.buyer as unknown as { email: string; name: string } | null
+  if (seller?.email && buyer?.email) {
+    emailPagamentoConfirmado({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      compradorEmail: buyer.email,
+      compradorNome: buyer.name,
+      produto: tx.product_name,
+      valorCents: tx.amount_cents,
+      transactionId: tx.id,
+    }).catch(() => {})
+  }
+
   return NextResponse.json({ ok: true })
 }

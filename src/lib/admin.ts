@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { emailPagamentoConfirmado, emailDisputaResolvida, emailPagamentoLiberado } from '@/lib/email'
 import type { TransactionStatus } from '@/types/database'
 
 export async function listTransactions(filters?: { status?: TransactionStatus; search?: string }) {
@@ -51,7 +52,7 @@ export async function adminMarkPaid(transactionId: string) {
     .update({ status: 'paid', paid_at: paidAt.toISOString(), tracking_deadline: trackingDeadline.toISOString() })
     .eq('id', transactionId)
     .eq('status', 'pending')
-    .select('*')
+    .select('*, seller:users!transactions_seller_id_fkey(email,name), buyer:users!transactions_buyer_id_fkey(email,name)')
     .single()
 
   // Fallback: migração da coluna tracking_deadline pode não ter sido aplicada
@@ -61,7 +62,7 @@ export async function adminMarkPaid(transactionId: string) {
       .update({ status: 'paid', paid_at: paidAt.toISOString() })
       .eq('id', transactionId)
       .eq('status', 'pending')
-      .select('*')
+      .select('*, seller:users!transactions_seller_id_fkey(email,name), buyer:users!transactions_buyer_id_fkey(email,name)')
       .single()
   }
 
@@ -76,6 +77,21 @@ export async function adminMarkPaid(transactionId: string) {
     metadata: { note: 'Confirmação manual pelo admin' },
   })
 
+  // Notifica comprador e vendedor
+  const seller = (data as Record<string, unknown>).seller as { email: string; name: string } | null
+  const buyer = (data as Record<string, unknown>).buyer as { email: string; name: string } | null
+  if (seller?.email && buyer?.email) {
+    emailPagamentoConfirmado({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      compradorEmail: buyer.email,
+      compradorNome: buyer.name,
+      produto: data.product_name,
+      valorCents: data.amount_cents,
+      transactionId,
+    }).catch(() => {})
+  }
+
   return data
 }
 
@@ -85,8 +101,8 @@ export async function adminRelease(transactionId: string) {
     .from('transactions')
     .update({ status: 'released', released_at: new Date().toISOString() })
     .eq('id', transactionId)
-    .in('status', ['delivered', 'complaint_period', 'disputed'])
-    .select('*')
+    .in('status', ['delivered', 'complaint_period'])
+    .select('*, seller:users!transactions_seller_id_fkey(email,name)')
     .single()
 
   if (error || !data) throw new Error('Não foi possível liberar pagamento')
@@ -98,6 +114,17 @@ export async function adminRelease(transactionId: string) {
     actor_role: 'system',
     metadata: { note: 'Liberação manual pelo admin' },
   })
+
+  const seller = (data as Record<string, unknown>).seller as { email: string; name: string } | null
+  if (seller?.email) {
+    emailPagamentoLiberado({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      produto: data.product_name,
+      valorCents: data.amount_cents,
+      transactionId,
+    }).catch(() => {})
+  }
 
   return data
 }
@@ -120,7 +147,7 @@ export async function adminResolve(
     )
     .eq('id', transactionId)
     .eq('status', 'disputed')
-    .select('*')
+    .select('*, seller:users!transactions_seller_id_fkey(email,name), buyer:users!transactions_buyer_id_fkey(email,name)')
     .single()
 
   if (error || !data) throw new Error('Não foi possível resolver disputa')
@@ -132,6 +159,21 @@ export async function adminResolve(
     actor_role: 'admin',
     metadata: { decision, note },
   })
+
+  const seller = (data as Record<string, unknown>).seller as { email: string; name: string } | null
+  const buyer = (data as Record<string, unknown>).buyer as { email: string; name: string } | null
+  if (seller?.email && buyer?.email) {
+    emailDisputaResolvida({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      compradorEmail: buyer.email,
+      compradorNome: buyer.name,
+      produto: data.product_name,
+      valorCents: data.amount_cents,
+      decision,
+      transactionId,
+    }).catch(() => {})
+  }
 
   return data
 }

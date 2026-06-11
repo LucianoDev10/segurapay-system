@@ -1,5 +1,11 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { createPixCharge } from '@/lib/abacatepay'
+import {
+  emailRastreioAdicionado,
+  emailEntregaConfirmada,
+  emailDisputaAberta,
+  emailPagamentoLiberado,
+} from '@/lib/email'
 import type { Transaction, TransactionWithParties, User } from '@/types/database'
 
 interface CreateTransactionInput {
@@ -267,7 +273,33 @@ export async function addTracking(
     metadata: { carrier, tracking_code: trackingCode },
   })
 
+  // Notifica comprador
+  const { data: buyer } = await supabase
+    .from('transactions')
+    .select('buyer:users!transactions_buyer_id_fkey(email, name), product_name')
+    .eq('id', transactionId)
+    .single()
+  const buyerUser = buyer?.buyer as unknown as { email: string; name: string } | null
+  if (buyerUser?.email) {
+    emailRastreioAdicionado({
+      compradorEmail: buyerUser.email,
+      compradorNome: buyerUser.name,
+      produto: buyer!.product_name,
+      carrier: CARRIER_LABEL[carrier] ?? carrier,
+      trackingCode,
+      transactionId,
+    }).catch(() => {})
+  }
+
   return updated
+}
+
+const CARRIER_LABEL: Record<string, string> = {
+  correios: 'Correios',
+  jadlog: 'Jadlog',
+  total_express: 'Total Express',
+  azul_cargo: 'Azul Cargo',
+  outro: 'Outro',
 }
 
 export async function confirmDelivery(transactionId: string): Promise<Transaction> {
@@ -307,6 +339,24 @@ export async function confirmDelivery(transactionId: string): Promise<Transactio
     actor_role: 'buyer',
     metadata: { complaint_deadline: complaintDeadline.toISOString() },
   })
+
+  // Notifica vendedor
+  const { data: parties } = await supabase
+    .from('transactions')
+    .select('product_name, amount_cents, seller:users!transactions_seller_id_fkey(email, name)')
+    .eq('id', transactionId)
+    .single()
+  const seller = parties?.seller as unknown as { email: string; name: string } | null
+  if (seller?.email) {
+    emailEntregaConfirmada({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      produto: parties!.product_name,
+      valorCents: parties!.amount_cents,
+      deadlineStr: complaintDeadline.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' }),
+      transactionId,
+    }).catch(() => {})
+  }
 
   return updated
 }
@@ -356,6 +406,24 @@ export async function openDispute(transactionId: string, reason: string, evidenc
     actor_role: 'buyer',
     metadata: { reason, evidence_count: evidenceUrls.length },
   })
+
+  // Notifica vendedor e admin
+  const { data: parties } = await supabase
+    .from('transactions')
+    .select('product_name, amount_cents, seller:users!transactions_seller_id_fkey(email, name)')
+    .eq('id', transactionId)
+    .single()
+  const seller = parties?.seller as unknown as { email: string; name: string } | null
+  if (seller?.email) {
+    emailDisputaAberta({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      produto: parties!.product_name,
+      valorCents: parties!.amount_cents,
+      motivo: reason,
+      transactionId,
+    }).catch(() => {})
+  }
 
   return updated
 }
@@ -425,6 +493,23 @@ export async function releasePayment(transactionId: string): Promise<Transaction
     actor_role: 'system',
     metadata: {},
   })
+
+  // Notifica vendedor
+  const { data: parties } = await supabase
+    .from('transactions')
+    .select('product_name, amount_cents, seller:users!transactions_seller_id_fkey(email, name)')
+    .eq('id', transactionId)
+    .single()
+  const seller = parties?.seller as unknown as { email: string; name: string } | null
+  if (seller?.email) {
+    emailPagamentoLiberado({
+      vendedorEmail: seller.email,
+      vendedorNome: seller.name,
+      produto: parties!.product_name,
+      valorCents: parties!.amount_cents,
+      transactionId,
+    }).catch(() => {})
+  }
 
   return updated
 }
