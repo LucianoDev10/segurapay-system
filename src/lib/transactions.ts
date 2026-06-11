@@ -1,5 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
-import { createPixCharge } from '@/lib/abacatepay'
+import { createPixCharge, createCardCheckout } from '@/lib/abacatepay'
 import {
   emailRastreioAdicionado,
   emailEntregaConfirmada,
@@ -218,6 +218,78 @@ export async function initiatePay(input: InitiatePayInput): Promise<InitiatePayR
     pix_copy_paste: pixCharge.brCode,
     pix_qr_code: pixCharge.brCodeBase64,
   }
+}
+
+interface InitiateCardPayInput {
+  transaction_id: string
+  buyer_name?: string
+  buyer_email?: string
+  buyer_cpf: string
+  buyer_phone: string
+  authenticated_buyer_id?: string
+}
+
+export async function initiateCardPay(input: InitiateCardPayInput): Promise<{ checkout_url: string }> {
+  const supabase = createAdminClient()
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+
+  const { data: tx } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', input.transaction_id)
+    .single()
+
+  if (!tx) throw new Error('Transação não encontrada')
+  if (tx.status !== 'pending') throw new Error('Transação não está disponível para pagamento')
+
+  let buyer: User
+
+  if (input.authenticated_buyer_id) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ role: 'buyer' })
+      .eq('id', input.authenticated_buyer_id)
+      .select('*')
+      .single()
+    if (error || !data) throw new Error('Erro ao carregar comprador autenticado')
+    buyer = data
+  } else {
+    const { data: existing } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', input.buyer_email!)
+      .single()
+    if (existing) {
+      buyer = existing
+    } else {
+      const { data: created, error } = await supabase
+        .from('users')
+        .insert({ name: input.buyer_name!, email: input.buyer_email!, role: 'buyer' })
+        .select('*')
+        .single()
+      if (error || !created) throw new Error('Erro ao registrar comprador')
+      buyer = created
+    }
+  }
+
+  const checkout = await createCardCheckout({
+    transactionId: input.transaction_id,
+    productName: tx.product_name,
+    amountCents: tx.amount_cents,
+    buyerName: buyer.name,
+    buyerEmail: buyer.email!,
+    buyerCpf: input.buyer_cpf,
+    buyerPhone: input.buyer_phone,
+    completionUrl: `${appUrl}/transacao/${input.transaction_id}?paid=1`,
+    returnUrl: `${appUrl}/pagar/${input.transaction_id}`,
+  })
+
+  await supabase
+    .from('transactions')
+    .update({ buyer_id: buyer.id, payment_id: checkout.id })
+    .eq('id', input.transaction_id)
+
+  return { checkout_url: checkout.url }
 }
 
 export async function getTransactionWithEvents(id: string) {

@@ -63,6 +63,61 @@ export async function getPixStatus(id: string): Promise<PixStatus> {
   return json.data
 }
 
+export interface CardCheckout {
+  id: string
+  url: string
+  status: 'PENDING' | 'EXPIRED' | 'CANCELLED' | 'PAID' | 'REFUNDED'
+}
+
+export async function createCardCheckout(params: {
+  transactionId: string
+  productName: string
+  amountCents: number
+  buyerName: string
+  buyerEmail: string
+  buyerCpf: string
+  buyerPhone: string
+  completionUrl: string
+  returnUrl: string
+}): Promise<CardCheckout> {
+  // 1. Cria produto para esta transação
+  const productRes = await fetch(`${BASE_URL}/products/create`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      externalId: params.transactionId,
+      name: params.productName,
+      price: params.amountCents,
+      currency: 'BRL',
+    }),
+  })
+  const productJson = await productRes.json() as { success: boolean; data: { id: string }; error: string | null }
+  if (!productJson.success) throw new Error(productJson.error ?? 'Erro ao criar produto para checkout')
+  const productId = productJson.data.id
+
+  // 2. Cria checkout com cartão
+  const checkoutRes = await fetch(`${BASE_URL}/checkouts/create`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({
+      methods: 'CARD',
+      externalId: params.transactionId,
+      completionUrl: params.completionUrl,
+      returnUrl: params.returnUrl,
+      customer: {
+        name: params.buyerName,
+        email: params.buyerEmail,
+        taxId: params.buyerCpf.replace(/\D/g, ''),
+        cellphone: params.buyerPhone.replace(/\D/g, ''),
+      },
+      items: [{ id: productId, quantity: 1 }],
+    }),
+  })
+  const checkoutJson = await checkoutRes.json() as { success: boolean; data: CardCheckout; error: string | null }
+  if (!checkoutJson.success) throw new Error(checkoutJson.error ?? 'Erro ao criar checkout de cartão')
+  return checkoutJson.data
+}
+
 // Apenas para ambiente de desenvolvimento — simula pagamento de um QR code
 export async function simulatePixPayment(id: string): Promise<PixCharge> {
   const res = await fetch(`${BASE_URL}/transparents/simulate-payment?id=${id}`, {

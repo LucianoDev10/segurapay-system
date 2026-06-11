@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { PixInstrucoes } from '@/components/PixInstrucoes'
+import { maskPhone, maskCpf } from '@/lib/masks'
 import type { Transaction } from '@/types/database'
 
 interface PagamentoViewProps {
@@ -14,11 +15,17 @@ interface PagamentoViewProps {
   buyerEmail?: string | null
 }
 
-interface PayResponse {
+interface PayPixResponse {
   transaction: Transaction
   pix_copy_paste: string
   pix_qr_code: string | null
 }
+
+interface PayCardResponse {
+  checkout_url: string
+}
+
+type PayMethod = 'pix' | 'card'
 
 export function PagamentoView({
   transactionId,
@@ -30,25 +37,38 @@ export function PagamentoView({
   buyerEmail,
 }: PagamentoViewProps) {
   const isLoggedIn = !!(buyerName && buyerEmail)
+  const [method, setMethod] = useState<PayMethod>('pix')
   const [nome, setNome] = useState('')
   const [email, setEmail] = useState('')
-  const [pago, setPago] = useState<PayResponse | null>(null)
+  const [cpf, setCpf] = useState('')
+  const [phone, setPhone] = useState('')
+  const [pago, setPago] = useState<PayPixResponse | null>(null)
   const [loading, setLoading] = useState(false)
   const [erro, setErro] = useState<string | null>(null)
 
   const valor = (amountCents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-  const podePagar = isLoggedIn
-    ? !loading
-    : nome.trim().length >= 2 && emailValido && !loading
+  const cpfValido = cpf.replace(/\D/g, '').length === 11
+  const phoneValido = phone.replace(/\D/g, '').length >= 10
+
+  const guestBaseOk = isLoggedIn || (nome.trim().length >= 2 && emailValido)
+  const cardExtraOk = cpfValido && phoneValido
+  const podePagar = !loading && guestBaseOk && (method === 'pix' || cardExtraOk)
 
   async function handlePagar() {
     setErro(null)
     setLoading(true)
     try {
-      const body = isLoggedIn
-        ? {}
-        : { buyer_name: nome.trim(), buyer_email: email.trim() }
+      const body: Record<string, string> = { method }
+      if (!isLoggedIn) {
+        body.buyer_name = nome.trim()
+        body.buyer_email = email.trim()
+      }
+      if (method === 'card') {
+        body.buyer_cpf = cpf
+        body.buyer_phone = phone
+      }
+
       const res = await fetch(`/api/transactions/${transactionId}/pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,7 +76,13 @@ export function PagamentoView({
       })
       const json = await res.json()
       if (!res.ok) { setErro(json.error ?? 'Erro ao processar pagamento'); return }
-      setPago(json)
+
+      if (method === 'card') {
+        window.location.href = (json as PayCardResponse).checkout_url
+        return
+      }
+
+      setPago(json as PayPixResponse)
     } catch {
       setErro('Erro de conexão. Tente novamente.')
     } finally {
@@ -142,6 +168,65 @@ export function PagamentoView({
         </div>
       )}
 
+      {/* Método de pagamento */}
+      <div className="flex flex-col gap-2">
+        <p className="text-[12px] font-medium text-[#8890A4] uppercase tracking-wide">forma de pagamento</p>
+        <div className="grid grid-cols-2 gap-2">
+          {([
+            { value: 'pix',  label: 'Pix',            icon: '⚡', sub: 'Instantâneo' },
+            { value: 'card', label: 'Cartão',          icon: '💳', sub: 'Crédito / débito' },
+          ] as const).map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => { setMethod(opt.value); setErro(null) }}
+              className="flex flex-col items-center gap-1 rounded-[10px] border py-3 px-2 text-center transition-all duration-150"
+              style={method === opt.value
+                ? { background: '#EEF2FF', borderColor: '#1B4DFF' }
+                : { background: '#fff', borderColor: '#E4E8F0' }
+              }
+            >
+              <span className="text-[20px] leading-none">{opt.icon}</span>
+              <span className="text-[13px] font-medium" style={{ color: method === opt.value ? '#1338CC' : '#1A202C' }}>{opt.label}</span>
+              <span className="text-[11px]" style={{ color: method === opt.value ? '#1338CC' : '#8890A4' }}>{opt.sub}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Campos extras para cartão */}
+      {method === 'card' && (
+        <div className="flex flex-col gap-3">
+          <p className="text-[12px] font-medium text-[#8890A4] uppercase tracking-wide">dados para antifraude</p>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={cpf}
+            onChange={e => setCpf(maskCpf(e.target.value))}
+            placeholder="CPF (000.000.000-00)"
+            autoComplete="off"
+            className={inputClass}
+          />
+          <div className="flex rounded-[10px] border border-[#E4E8F0] overflow-hidden bg-white focus-within:border-[#1B4DFF] focus-within:ring-1 focus-within:ring-[#1B4DFF]/20 transition-all duration-150">
+            <span className="px-3.5 py-2.5 bg-[#F2F4F7] border-r border-[#E4E8F0] text-[13px] text-[#8890A4] select-none">+55</span>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(maskPhone(e.target.value))}
+              placeholder="(11) 99999-9999"
+              autoComplete="tel-national"
+              className="flex-1 px-3.5 py-2.5 text-[14px] text-[#1A202C] placeholder:text-[#8890A4] bg-transparent outline-none"
+            />
+          </div>
+          <div className="flex items-start gap-2 p-2.5 rounded-[8px] text-[11px]" style={{ background: '#FFF8E6', color: '#92400E' }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Você será redirecionado para a página segura da AbacatePay para inserir os dados do cartão.
+          </div>
+        </div>
+      )}
+
       {erro && (
         <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#FEF2F2', borderLeft: '3px solid #EF4444', color: '#EF4444' }}>
           {erro}
@@ -153,7 +238,12 @@ export function PagamentoView({
         disabled={!podePagar}
         className="w-full rounded-[10px] bg-[#1B4DFF] hover:bg-[#1338CC] disabled:opacity-60 px-5 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
       >
-        {loading ? 'Processando...' : `Pagar ${valor} via Pix`}
+        {loading
+          ? (method === 'card' ? 'Redirecionando...' : 'Processando...')
+          : method === 'card'
+            ? `Pagar ${valor} com cartão`
+            : `Pagar ${valor} via Pix`
+        }
       </button>
     </div>
   )
