@@ -13,10 +13,11 @@ export async function POST(
 
   const { id } = await params
   const body = await request.json().catch(() => ({})) as Record<string, unknown>
-  const note = typeof body.note === 'string' ? body.note : 'Resolvido pelo admin'
+  const decision = body.decision === 'refund_to_buyer' ? 'refund_to_buyer' : 'release_to_seller'
+  const note = typeof body.note === 'string' ? body.note : ''
 
   try {
-    const transaction = await adminResolve(id, note)
+    const transaction = await adminResolve(id, decision, note)
     return NextResponse.json({ transaction })
   } catch (err) {
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Erro interno' }, { status: 422 })

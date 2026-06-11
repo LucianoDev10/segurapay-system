@@ -243,15 +243,12 @@ export async function addTracking(
 
   const { data: tx } = await supabase
     .from('transactions')
-    .select('status, seller_id, tracking_deadline')
+    .select('id, status, seller_id')
     .eq('id', transactionId)
     .single()
 
   if (!tx) throw new Error('Transação não encontrada')
   if (tx.status !== 'paid') throw new Error('Rastreio só pode ser adicionado após pagamento confirmado')
-  if (tx.tracking_deadline && new Date() > new Date(tx.tracking_deadline)) {
-    throw new Error('Prazo para adicionar rastreio expirado. A transação será cancelada em breve.')
-  }
 
   const { data: updated, error } = await supabase
     .from('transactions')
@@ -314,36 +311,50 @@ export async function confirmDelivery(transactionId: string): Promise<Transactio
   return updated
 }
 
-export async function openDispute(transactionId: string, reason: string): Promise<Transaction> {
+export async function openDispute(transactionId: string, reason: string, evidenceUrls: string[] = []): Promise<Transaction> {
   const supabase = createAdminClient()
 
   const { data: tx } = await supabase
     .from('transactions')
-    .select('status, buyer_id, complaint_deadline')
+    .select('id, status, buyer_id')
     .eq('id', transactionId)
     .single()
 
   if (!tx) throw new Error('Transação não encontrada')
   if (tx.status !== 'delivered') throw new Error('Disputa só pode ser aberta após confirmação de entrega')
-  if (tx.complaint_deadline && new Date() > new Date(tx.complaint_deadline)) {
-    throw new Error('Prazo para abertura de disputa expirado')
-  }
 
-  const { data: updated, error } = await supabase
+  // Tenta salvar com evidências; se a coluna ainda não existir, salva sem ela
+  let updated: Transaction | null = null
+  const baseUpdate = { status: 'disputed' as const, disputed_at: new Date().toISOString(), dispute_reason: reason }
+
+  const { data: withEvidence, error: errFull } = await supabase
     .from('transactions')
-    .update({ status: 'disputed', disputed_at: new Date().toISOString(), dispute_reason: reason })
+    .update({ ...baseUpdate, dispute_evidence_urls: evidenceUrls })
     .eq('id', transactionId)
     .select('*')
     .single()
 
-  if (error || !updated) throw new Error('Erro ao abrir disputa')
+  if (errFull) {
+    const { data: withoutEvidence, error: errBasic } = await supabase
+      .from('transactions')
+      .update(baseUpdate)
+      .eq('id', transactionId)
+      .select('*')
+      .single()
+    if (errBasic || !withoutEvidence) throw new Error('Erro ao abrir disputa')
+    updated = withoutEvidence
+  } else {
+    updated = withEvidence
+  }
+
+  if (!updated) throw new Error('Erro ao abrir disputa')
 
   await supabase.from('escrow_events').insert({
     transaction_id: transactionId,
     event_type: 'disputed',
     actor_id: tx.buyer_id,
     actor_role: 'buyer',
-    metadata: { reason },
+    metadata: { reason, evidence_count: evidenceUrls.length },
   })
 
   return updated

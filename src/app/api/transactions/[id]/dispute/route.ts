@@ -11,9 +11,12 @@ export async function POST(
   const reason = typeof body.reason === 'string' && body.reason.trim()
     ? body.reason.trim()
     : 'Sem descrição'
+  const evidenceUrls = Array.isArray(body.evidence_urls)
+    ? (body.evidence_urls as unknown[]).filter((u): u is string => typeof u === 'string')
+    : []
 
   try {
-    const transaction = await openDispute(id, reason)
+    const transaction = await openDispute(id, reason, evidenceUrls)
     return NextResponse.json({ transaction })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Erro interno'

@@ -54,6 +54,9 @@ export interface Transaction {
   complaint_deadline: string | null
   disputed_at: string | null
   dispute_reason: string | null
+  dispute_evidence_urls: string[] | null
+  seller_dispute_note: string | null
+  seller_dispute_evidence_urls: string[] | null
   resolved_at: string | null
   released_at: string | null
   created_at: string

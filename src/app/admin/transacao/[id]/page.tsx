@@ -75,6 +75,63 @@ export default async function AdminTransacaoPage({ params }: Props) {
           </dl>
         </div>
 
+        {tx.status === 'disputed' && (
+          <div className="bg-white rounded-[16px] border border-[#E4E8F0] overflow-hidden">
+            <div className="px-5 py-3 border-b border-[#F2F4F7] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#EF4444] animate-pulse" />
+              <h2 className="text-[11px] font-medium text-[#EF4444] uppercase tracking-wide">Evidências da disputa</h2>
+            </div>
+
+            {/* Reclamação do comprador */}
+            <div className="px-5 py-4 border-b border-[#F2F4F7]">
+              <p className="text-[11px] font-medium text-[#8890A4] uppercase tracking-wide mb-3">Comprador — {tx.buyer?.name ?? '—'}</p>
+              {tx.dispute_reason && (
+                <div className="p-3 rounded-[10px] bg-[#FEF2F2]/60 border border-[#FCA5A5]/30 mb-3">
+                  <p className="text-[13px] text-[#7F1D1D] leading-relaxed">{tx.dispute_reason}</p>
+                </div>
+              )}
+              {(tx.dispute_evidence_urls as string[] | null)?.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {(tx.dispute_evidence_urls as string[]).map((url: string, i: number) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      className="w-16 h-16 rounded-[8px] overflow-hidden border border-[#E4E8F0] flex-shrink-0 hover:border-[#EF4444] transition-colors block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`evidência comprador ${i + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                !tx.dispute_reason && <p className="text-[12px] text-[#8890A4]">Nenhuma evidência enviada.</p>
+              )}
+            </div>
+
+            {/* Defesa do vendedor */}
+            <div className="px-5 py-4">
+              <p className="text-[11px] font-medium text-[#8890A4] uppercase tracking-wide mb-3">Vendedor — {tx.seller?.name ?? '—'}</p>
+              {tx.seller_dispute_note ? (
+                <div className="p-3 rounded-[10px] bg-[#EEF2FF]/60 border border-[#C7D2FE]/40 mb-3">
+                  <p className="text-[13px] text-[#1338CC] leading-relaxed">{tx.seller_dispute_note}</p>
+                </div>
+              ) : null}
+              {(tx.seller_dispute_evidence_urls as string[] | null)?.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {(tx.seller_dispute_evidence_urls as string[]).map((url: string, i: number) => (
+                    <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                      className="w-16 h-16 rounded-[8px] overflow-hidden border border-[#E4E8F0] flex-shrink-0 hover:border-[#1B4DFF] transition-colors block"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={url} alt={`evidência vendedor ${i + 1}`} className="w-full h-full object-cover" />
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                !tx.seller_dispute_note && <p className="text-[12px] text-[#8890A4]">Vendedor ainda não enviou defesa.</p>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="bg-white rounded-[16px] border border-[#E4E8F0] p-5">
           <h2 className="text-[11px] font-medium text-[#8890A4] uppercase tracking-wide mb-4">Ações</h2>
           <AdminAcoes transactionId={tx.id} status={tx.status as TransactionStatus} />

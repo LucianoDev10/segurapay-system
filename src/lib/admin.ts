@@ -102,11 +102,22 @@ export async function adminRelease(transactionId: string) {
   return data
 }
 
-export async function adminResolve(transactionId: string, note: string) {
+export async function adminResolve(
+  transactionId: string,
+  decision: 'release_to_seller' | 'refund_to_buyer',
+  note: string,
+) {
   const supabase = createAdminClient()
+  const now = new Date().toISOString()
+
+  const isSeller = decision === 'release_to_seller'
+
   const { data, error } = await supabase
     .from('transactions')
-    .update({ status: 'resolved', resolved_at: new Date().toISOString() })
+    .update(isSeller
+      ? { status: 'released', released_at: now }
+      : { status: 'resolved', resolved_at: now },
+    )
     .eq('id', transactionId)
     .eq('status', 'disputed')
     .select('*')
@@ -116,10 +127,10 @@ export async function adminResolve(transactionId: string, note: string) {
 
   await supabase.from('escrow_events').insert({
     transaction_id: transactionId,
-    event_type: 'resolved',
+    event_type: isSeller ? 'released' : 'resolved',
     actor_id: null,
-    actor_role: 'system',
-    metadata: { note },
+    actor_role: 'admin',
+    metadata: { decision, note },
   })
 
   return data

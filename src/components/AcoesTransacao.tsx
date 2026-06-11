@@ -27,47 +27,29 @@ function ConfirmacaoModal({
 }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onCancel} />
 
-      {/* Card */}
       <div className="relative w-full max-w-sm bg-white rounded-[16px] border border-[#E4E8F0] p-6 flex flex-col gap-4">
-        {/* Ícone */}
         <div className="w-12 h-12 rounded-full bg-[#ECFDF5] flex items-center justify-center mx-auto">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
         </div>
 
-        {/* Texto */}
         <div className="text-center">
-          <p className="text-[16px] font-medium text-[#1A202C]">Confirmar recebimento</p>
+          <p className="text-[16px] font-medium text-[#1A202C]">Confirmar entrega</p>
           <p className="text-[13px] text-[#4A5568] mt-2 leading-relaxed">
-            Você confirma que recebeu o produto <strong>exatamente como anunciado</strong>, sem avarias ou divergências?
+            Confirme que o produto chegou até você. Você terá <strong>24 horas</strong> para avaliar e abrir uma disputa se necessário.
           </p>
         </div>
 
-        {/* Aviso — prazo de disputa */}
         <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[12px]" style={{ background: '#EFF6FF', borderLeft: '3px solid #1D4ED8', color: '#1D4ED8' }}>
           <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
             <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
           </svg>
-          <span>Após confirmar, você tem <strong>24 horas</strong> para abrir uma disputa caso haja qualquer problema com o produto.</span>
+          <span>Se não houver disputa dentro do prazo, o pagamento é <strong>liberado automaticamente</strong> ao vendedor.</span>
         </div>
 
-        {/* Aviso — liberação */}
-        <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[12px]" style={{ background: '#FFF8E6', borderLeft: '3px solid #D97706', color: '#92400E' }}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
-            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-          </svg>
-          <span>Se não abrir disputa nesse prazo, o pagamento é <strong>liberado automaticamente ao vendedor</strong>.</span>
-        </div>
-
-        {/* Botões */}
         <div className="flex gap-3 mt-1">
           <button
             onClick={onCancel}
@@ -81,7 +63,7 @@ function ConfirmacaoModal({
             disabled={loading}
             className="flex-1 rounded-[10px] bg-[#10B981] hover:bg-[#059669] disabled:opacity-60 px-4 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
           >
-            {loading ? 'Confirmando...' : 'Sim, recebi'}
+            {loading ? 'Confirmando...' : 'Recebi o produto'}
           </button>
         </div>
       </div>
@@ -89,55 +71,228 @@ function ConfirmacaoModal({
   )
 }
 
-function DisputaModal({
+function LiberarPagamentoModal({
   onConfirm,
   onCancel,
   loading,
 }: {
-  onConfirm: (reason: string) => void
+  onConfirm: () => void
   onCancel: () => void
   loading: boolean
 }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onCancel} />
+
+      <div className="relative w-full max-w-sm bg-white rounded-[16px] border border-[#E4E8F0] p-6 flex flex-col gap-4">
+        <div className="w-12 h-12 rounded-full bg-[#EEF2FF] flex items-center justify-center mx-auto">
+          <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1338CC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/>
+          </svg>
+        </div>
+
+        <div className="text-center">
+          <p className="text-[16px] font-medium text-[#1A202C]">Liberar pagamento</p>
+          <p className="text-[13px] text-[#4A5568] mt-2 leading-relaxed">
+            Confirme que o produto está <strong>exatamente como anunciado</strong>. Ao confirmar, o pagamento será liberado imediatamente ao vendedor.
+          </p>
+        </div>
+
+        <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[12px]" style={{ background: '#FFF8E6', borderLeft: '3px solid #D97706', color: '#92400E' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <span>Esta ação é <strong>irreversível</strong>. Se houver algum problema com o produto, use <strong>"Abrir disputa"</strong> em vez disso.</span>
+        </div>
+
+        <div className="flex gap-3 mt-1">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="flex-1 rounded-[10px] border border-[#E4E8F0] bg-white hover:bg-[#F2F4F7] px-4 py-2.5 text-[14px] font-medium text-[#4A5568] transition-all duration-150 disabled:opacity-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className="flex-1 rounded-[10px] bg-[#1B4DFF] hover:bg-[#1338CC] disabled:opacity-60 px-4 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
+          >
+            {loading ? 'Liberando...' : 'Confirmar e liberar'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const DISPUTE_CATEGORIES = [
+  { value: 'nao_recebeu', label: 'Não recebi o pedido' },
+  { value: 'item_danificado', label: 'O item foi danificado durante o transporte' },
+  { value: 'item_diferente', label: 'O item é diferente / não corresponde ao anúncio' },
+]
+
+function DisputaModal({
+  transactionId,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  transactionId: string
+  onConfirm: (reason: string, evidenceUrls: string[]) => void
+  onCancel: () => void
+  loading: boolean
+}) {
+  const [category, setCategory] = useState('')
   const [reason, setReason] = useState('')
+  const [images, setImages] = useState<File[]>([])
+  const [previews, setPreviews] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState<string | null>(null)
+
+  function addImages(files: FileList | null) {
+    if (!files) return
+    const allowed = Array.from(files).filter(f => f.type.startsWith('image/'))
+    const merged = [...images, ...allowed].slice(0, 5)
+    setImages(merged)
+    setPreviews(merged.map(f => URL.createObjectURL(f)))
+    setUploadError(null)
+  }
+
+  function removeImage(i: number) {
+    const next = images.filter((_, idx) => idx !== i)
+    setImages(next)
+    setPreviews(next.map(f => URL.createObjectURL(f)))
+  }
+
+  async function handleSubmit() {
+    setUploadError(null)
+    let evidenceUrls: string[] = []
+
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('transactionId', transactionId)
+      images.forEach(f => fd.append('files', f))
+      const res = await fetch('/api/upload/dispute-evidence', { method: 'POST', body: fd })
+      const json = await res.json()
+      if (!res.ok) { setUploadError(json.error ?? 'Erro ao enviar imagens'); setUploading(false); return }
+      evidenceUrls = json.urls
+    } catch {
+      setUploadError('Erro de conexão ao enviar imagens.')
+      setUploading(false)
+      return
+    }
+    setUploading(false)
+
+    const categoryLabel = DISPUTE_CATEGORIES.find(c => c.value === category)?.label ?? category
+    onConfirm(`[${categoryLabel}] ${reason.trim()}`, evidenceUrls)
+  }
+
+  const canSubmit = !!category && reason.trim().length > 0 && images.length > 0
+  const isBusy = loading || uploading
+
+  const selectClass = "w-full rounded-[10px] border border-[#E4E8F0] bg-white px-3.5 py-2.5 text-[14px] text-[#1A202C] outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 transition-all duration-150 appearance-none cursor-pointer"
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onCancel} />
 
-      {/* Card */}
-      <div className="relative w-full max-w-sm bg-white rounded-[16px] border border-[#E4E8F0] p-6 flex flex-col gap-4">
+      <div className="relative w-full max-w-sm bg-white rounded-[16px] border border-[#E4E8F0] p-6 flex flex-col gap-4 max-h-[90vh] overflow-y-auto">
         {/* Ícone */}
-        <div className="w-12 h-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto">
+        <div className="w-12 h-12 rounded-full bg-[#FEF2F2] flex items-center justify-center mx-auto flex-shrink-0">
           <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
             <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
           </svg>
         </div>
 
-        {/* Texto */}
+        {/* Título */}
         <div className="text-center">
           <p className="text-[16px] font-medium text-[#1A202C]">Abrir disputa</p>
-          <p className="text-[13px] text-[#4A5568] mt-2 leading-relaxed">
-            Descreva o problema com o produto recebido. O Segura Pay irá mediar a situação.
+          <p className="text-[13px] text-[#4A5568] mt-1 leading-relaxed">
+            Preencha todos os campos. O Segura Pay irá mediar a situação.
           </p>
         </div>
 
-        {/* Textarea */}
+        {/* Categoria */}
         <div>
           <label className="block text-[12px] font-medium text-[#4A5568] mb-1.5">
-            Motivo da disputa <span className="text-[#EF4444]">*</span>
+            Tipo de problema <span className="text-[#EF4444]">*</span>
+          </label>
+          <div className="relative">
+            <select
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              className={`${selectClass} pr-9 ${!category ? 'text-[#8890A4]' : ''}`}
+            >
+              <option value="" disabled>Selecione o tipo de problema</option>
+              {DISPUTE_CATEGORIES.map(c => (
+                <option key={c.value} value={c.value}>{c.label}</option>
+              ))}
+            </select>
+            <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8890A4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9"/>
+            </svg>
+          </div>
+        </div>
+
+        {/* Descrição */}
+        <div>
+          <label className="block text-[12px] font-medium text-[#4A5568] mb-1.5">
+            Descreva o problema <span className="text-[#EF4444]">*</span>
           </label>
           <textarea
             value={reason}
             onChange={e => setReason(e.target.value)}
             rows={3}
-            placeholder="Ex: produto não corresponde ao anúncio, veio com defeito, item faltando..."
+            placeholder="Descreva detalhadamente o que aconteceu..."
             className="w-full rounded-[10px] border border-[#E4E8F0] bg-white px-3.5 py-2.5 text-[14px] text-[#1A202C] placeholder:text-[#8890A4] outline-none focus:border-[#EF4444] focus:ring-1 focus:ring-[#EF4444]/20 transition-all duration-150 resize-none"
           />
+        </div>
+
+        {/* Evidências */}
+        <div>
+          <label className="block text-[12px] font-medium text-[#4A5568] mb-1.5">
+            Evidências <span className="text-[#EF4444]">*</span>
+            <span className="text-[#8890A4] font-normal ml-1">(mín. 1 · máx. 5 imagens)</span>
+          </label>
+
+          {previews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {previews.map((src, i) => (
+                <div key={i} className="relative w-16 h-16 rounded-[8px] overflow-hidden border border-[#E4E8F0] flex-shrink-0">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={src} alt={`evidência ${i + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeImage(i)}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/60 flex items-center justify-center"
+                  >
+                    <svg width="8" height="8" viewBox="0 0 10 10" fill="none">
+                      <line x1="1.5" y1="1.5" x2="8.5" y2="8.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                      <line x1="8.5" y1="1.5" x2="1.5" y2="8.5" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {images.length < 5 && (
+            <label className={`flex items-center gap-2 cursor-pointer w-fit px-3 py-2 rounded-[8px] border border-dashed transition-colors ${images.length === 0 ? 'border-[#EF4444]/40 bg-[#FEF2F2]/50 hover:bg-[#FEF2F2]' : 'border-[#E4E8F0] hover:border-[#EF4444] hover:bg-[#FEF2F2]'}`}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8890A4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
+              </svg>
+              <span className="text-[12px] text-[#8890A4]">
+                {images.length === 0 ? 'Adicionar imagens (obrigatório)' : `Adicionar mais (${images.length}/5)`}
+              </span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={e => addImages(e.target.files)} />
+            </label>
+          )}
+
+          {uploadError && <p className="text-[11px] text-[#EF4444] mt-1.5">{uploadError}</p>}
         </div>
 
         {/* Aviso */}
@@ -152,17 +307,17 @@ function DisputaModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            disabled={loading}
+            disabled={isBusy}
             className="flex-1 rounded-[10px] border border-[#E4E8F0] bg-white hover:bg-[#F2F4F7] px-4 py-2.5 text-[14px] font-medium text-[#4A5568] transition-all duration-150 disabled:opacity-50"
           >
             Cancelar
           </button>
           <button
-            onClick={() => onConfirm(reason.trim() || 'Sem descrição')}
-            disabled={loading || !reason.trim()}
+            onClick={handleSubmit}
+            disabled={isBusy || !canSubmit}
             className="flex-1 rounded-[10px] bg-[#EF4444] hover:bg-[#DC2626] disabled:opacity-50 px-4 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
           >
-            {loading ? 'Enviando...' : 'Abrir disputa'}
+            {uploading ? 'Enviando...' : loading ? 'Abrindo...' : 'Abrir disputa'}
           </button>
         </div>
       </div>
@@ -262,14 +417,14 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
             <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
               <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
             </svg>
-            <span>O produto está a caminho. Clique assim que receber para liberar o pagamento.</span>
+            <span>O produto está a caminho. Confirme quando receber — você terá 24h para avaliar antes do pagamento ser liberado.</span>
           </div>
           <button
             onClick={() => setShowConfirm(true)}
             disabled={loading !== null}
             className="w-full rounded-[10px] bg-[#1B4DFF] hover:bg-[#1338CC] disabled:opacity-60 px-5 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
           >
-            Produto recebido
+            Confirmar entrega
           </button>
           {erro && <p className="text-[12px] text-[#EF4444]">{erro}</p>}
         </div>
@@ -317,26 +472,12 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
   if (role === 'buyer') {
     if (status === 'paid') {
       return (
-        <>
-          {showConfirm && (
-            <ConfirmacaoModal
-              onConfirm={() => { setShowConfirm(false); action('confirm-delivery') }}
-              onCancel={() => setShowConfirm(false)}
-              loading={loading === 'confirm-delivery'}
-            />
-          )}
-          <div className="flex flex-col gap-3">
-            <p className="text-[14px] text-[#4A5568]">Recebeu o produto em perfeitas condições?</p>
-            <button
-              onClick={() => setShowConfirm(true)}
-              disabled={loading !== null}
-              className="w-full rounded-[10px] bg-[#1B4DFF] hover:bg-[#1338CC] disabled:opacity-60 px-5 py-2.5 text-[14px] font-medium text-white transition-all duration-150 active:scale-[0.98]"
-            >
-              Confirmar recebimento
-            </button>
-            {erro && <p className="text-[12px] text-[#EF4444]">{erro}</p>}
-          </div>
-        </>
+        <div className="flex items-start gap-2.5 p-3 rounded-[10px] text-[13px]" style={{ background: '#FFF8E6', borderLeft: '3px solid #D97706', color: '#92400E' }}>
+          <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+          <span>Aguardando o vendedor enviar o produto. Você será notificado assim que o código de rastreio for adicionado.</span>
+        </div>
       )
     }
 
@@ -344,7 +485,7 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
       return (
         <>
           {showConfirm && (
-            <ConfirmacaoModal
+            <LiberarPagamentoModal
               onConfirm={() => { setShowConfirm(false); action('release') }}
               onCancel={() => setShowConfirm(false)}
               loading={loading === 'release'}
@@ -352,7 +493,8 @@ export function AcoesTransacao({ transactionId, status, role, complaintDeadline,
           )}
           {showDisputa && (
             <DisputaModal
-              onConfirm={(reason) => { setShowDisputa(false); action('dispute', { reason }) }}
+              transactionId={transactionId}
+              onConfirm={(reason, evidenceUrls) => { setShowDisputa(false); action('dispute', { reason, evidence_urls: evidenceUrls }) }}
               onCancel={() => setShowDisputa(false)}
               loading={loading === 'dispute'}
             />
